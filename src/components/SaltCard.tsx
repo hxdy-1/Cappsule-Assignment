@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import SelectionButton from "./SelectionButton";
 
 interface SaltCardProps {
 	salt: string;
@@ -6,53 +7,57 @@ interface SaltCardProps {
 	saltFormJson: any;
 }
 
-const SaltCard = ({ salt, availableForms, saltFormJson }: SaltCardProps) => {
+const SaltCard: React.FC<SaltCardProps> = ({
+	salt,
+	availableForms,
+	saltFormJson,
+}) => {
 	const [selectedForm, setSelectedForm] = useState(availableForms[0]);
 	const [selectedStrength, setSelectedStrength] = useState("");
 	const [selectedPacking, setSelectedPacking] = useState("");
-	const [strengths, setStrengths] = useState<string[]>([]);
-	const [packings, setPackings] = useState<string[]>([]);
-	const [allStrengths, setAllStrengths] = useState<string[]>([]);
-	const [allPackings, setAllPackings] = useState<string[]>([]);
 	const [lowestPrice, setLowestPrice] = useState<number | null>(null);
 
-	useEffect(() => {
-		const allForms = Object.keys(saltFormJson);
-		const allStrengthsSet = new Set<string>();
-		const allPackingsSet = new Set<string>();
-
-		allForms.forEach((form) => {
+	const allStrengths = useMemo(() => {
+		const strengthsSet = new Set<string>();
+		Object.keys(saltFormJson).forEach((form) => {
 			Object.keys(saltFormJson[form]).forEach((strength) => {
-				allStrengthsSet.add(strength);
+				strengthsSet.add(strength);
+			});
+		});
+		return Array.from(strengthsSet);
+	}, [saltFormJson]);
+
+	const allPackings = useMemo(() => {
+		const packingsSet = new Set<string>();
+		Object.keys(saltFormJson).forEach((form) => {
+			Object.keys(saltFormJson[form]).forEach((strength) => {
 				Object.keys(saltFormJson[form][strength]).forEach((packing) => {
-					allPackingsSet.add(packing);
+					packingsSet.add(packing);
 				});
 			});
 		});
-
-		setAllStrengths(Array.from(allStrengthsSet));
-		setAllPackings(Array.from(allPackingsSet));
+		return Array.from(packingsSet);
 	}, [saltFormJson]);
 
-	useEffect(() => {
-		if (selectedForm) {
-			const strengthsArray = Object.keys(
-				saltFormJson[selectedForm] || {}
-			);
-			setStrengths(strengthsArray);
-			setSelectedStrength(strengthsArray[0] || "");
-		}
+	const strengths = useMemo(() => {
+		return selectedForm
+			? Object.keys(saltFormJson[selectedForm] || {})
+			: [];
 	}, [selectedForm, saltFormJson]);
 
-	useEffect(() => {
-		if (selectedForm && selectedStrength) {
-			const packingsArray = Object.keys(
-				saltFormJson[selectedForm]?.[selectedStrength] || {}
-			);
-			setPackings(packingsArray);
-			setSelectedPacking(packingsArray[0] || "");
-		}
+	const packings = useMemo(() => {
+		return selectedForm && selectedStrength
+			? Object.keys(saltFormJson[selectedForm]?.[selectedStrength] || {})
+			: [];
 	}, [selectedForm, selectedStrength, saltFormJson]);
+
+	useEffect(() => {
+		setSelectedStrength(strengths[0] || "");
+	}, [strengths]);
+
+	useEffect(() => {
+		setSelectedPacking(packings[0] || "");
+	}, [packings]);
 
 	useEffect(() => {
 		if (selectedForm && selectedStrength && selectedPacking) {
@@ -61,112 +66,65 @@ const SaltCard = ({ salt, availableForms, saltFormJson }: SaltCardProps) => {
 					selectedPacking
 				] || {};
 			const prices = Object.values(packings)
+				.flat()
 				.filter((pharmacy: any) => pharmacy !== null)
-				.map((pharmacy: any) => pharmacy[0]?.selling_price);
-			if (prices.length > 0) {
-				setLowestPrice(Math.min(...prices));
-			} else {
-				setLowestPrice(null);
-			}
+				.map((pharmacy: any) => pharmacy.selling_price);
+			setLowestPrice(prices.length > 0 ? Math.min(...prices) : null);
 		} else {
 			setLowestPrice(null);
 		}
 	}, [selectedForm, selectedStrength, selectedPacking, saltFormJson]);
 
-	const handleFormSelect = (form: string) => {
+	const handleFormSelect = useCallback((form: string) => {
 		setSelectedForm(form);
-		const strengthsArray = Object.keys(saltFormJson[form] || {});
-		setSelectedStrength(strengthsArray[0] || "");
-		const packingsArray = Object.keys(
-			saltFormJson[form]?.[strengthsArray[0]] || {}
-		);
-		setSelectedPacking(packingsArray[0] || "");
-	};
+	}, []);
 
-	const handleStrengthSelect = (strength: string) => {
+	const handleStrengthSelect = useCallback((strength: string) => {
 		setSelectedStrength(strength);
-		const packingsArray = Object.keys(
-			saltFormJson[selectedForm]?.[strength] || {}
-		);
-		setSelectedPacking(packingsArray[0] || "");
-	};
+	}, []);
 
-	const handlePackingSelect = (packing: string) => {
+	const handlePackingSelect = useCallback((packing: string) => {
 		setSelectedPacking(packing);
-	};
-
-	const getButtonClass = (available: boolean, selected: boolean) => {
-		let baseClass = "text-xs px-2.5 py-1.5 rounded-lg";
-		if (available && selected) {
-			return `${baseClass} font-semibold border-2 border-[#112D31] shadow-[0px_0px_11.54px_0px_#00C5A166]`;
-		} else if (available && !selected) {
-			return `${baseClass} border-2 text-[#555555] border-[#ABABAB]`;
-		} else if (!available && selected) {
-			return `${baseClass} border-2 border-[#112D31] border-dashed`;
-		} else {
-			return `${baseClass} border-2 text-[#555555] border-[#ABABAB] border-dashed`;
-		}
-	};
+	}, []);
 
 	return (
 		<li className="gradient-salt shadow-salt grid grid-cols-3 px-8 py-8 rounded-2xl">
 			<div className="grid grid-cols-2 gap-y-6">
 				<div className="text-sm">Form: </div>
 				<div className="flex flex-wrap items-center gap-4">
-					{availableForms.map((form) => {
-						const isSelected = selectedForm === form;
-						const isAvailable = availableForms.includes(form);
-						return (
-							<button
-								className={getButtonClass(
-									isAvailable,
-									isSelected
-								)}
-								key={form}
-								onClick={() => handleFormSelect(form)}
-							>
-								{form}
-							</button>
-						);
-					})}
+					{availableForms.map((form) => (
+						<SelectionButton
+							key={form}
+							label={form}
+							available={availableForms.includes(form)}
+							selected={selectedForm === form}
+							onClick={() => handleFormSelect(form)}
+						/>
+					))}
 				</div>
 				<div className="text-sm">Strength: </div>
 				<div className="flex flex-wrap items-center gap-4">
-					{allStrengths.map((strength) => {
-						const isSelected = selectedStrength === strength;
-						const isAvailable = strengths.includes(strength);
-						return (
-							<button
-								className={getButtonClass(
-									isAvailable,
-									isSelected
-								)}
-								key={strength}
-								onClick={() => handleStrengthSelect(strength)}
-							>
-								{strength}
-							</button>
-						);
-					})}
+					{allStrengths.map((strength) => (
+						<SelectionButton
+							key={strength}
+							label={strength}
+							available={strengths.includes(strength)}
+							selected={selectedStrength === strength}
+							onClick={() => handleStrengthSelect(strength)}
+						/>
+					))}
 				</div>
 				<div className="text-sm">Packaging: </div>
 				<div className="flex flex-wrap items-center gap-4">
-					{allPackings.map((packing) => {
-						const isSelected = selectedPacking === packing;
-						const isAvailable = packings.includes(packing);
-						return (
-							<button
-								className={getButtonClass(
-									isAvailable,
-									isSelected
-								)}
-								key={packing}
-								onClick={() => handlePackingSelect(packing)}
-							>
-								{packing}
-							</button>
-						);
-					})}
+					{allPackings.map((packing) => (
+						<SelectionButton
+							key={packing}
+							label={packing}
+							available={packings.includes(packing)}
+							selected={selectedPacking === packing}
+							onClick={() => handlePackingSelect(packing)}
+						/>
+					))}
 				</div>
 			</div>
 			<div className="w-fit py-8 mx-auto flex flex-col items-center justify-center text-center">
@@ -179,7 +137,7 @@ const SaltCard = ({ salt, availableForms, saltFormJson }: SaltCardProps) => {
 			<div className="font-[Inter] flex flex-col text-center justify-center items-center">
 				{lowestPrice !== null ? (
 					<div className="text-black font-extrabold text-3xl">
-						From₹{lowestPrice}
+						From ₹{lowestPrice}
 					</div>
 				) : (
 					<div className="w-fit bg-white text-black rounded-md text-sm font-medium leading-[1.2rem] border border-[#A7D6D4] px-6 py-3">

@@ -1,36 +1,39 @@
 import axios from "axios";
-import { useCallback, useState } from "react";
+import { useCallback, useState, FormEvent, ChangeEvent } from "react";
 
-const SearchBar = ({ setSaltArr, setNotFound }: any) => {
+const API = import.meta.env.VITE_API;
+
+interface SearchBarProps {
+	setSaltArr: (arr: any[]) => void;
+	setNotFound: (notFound: boolean) => void;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ setSaltArr, setNotFound }) => {
 	const [input, setInput] = useState<string>("");
 	const [loading, setLoading] = useState<boolean>(false);
-	// const [error, setError] = useState<string | null>(null);
 
 	const handleSubmit = useCallback(
-		async (e: React.FormEvent<HTMLFormElement>) => {
+		async (e: FormEvent<HTMLFormElement>) => {
 			e.preventDefault();
 			setLoading(true);
+
 			try {
 				const { data } = await axios.get(
-					`https://backend.cappsule.co.in/api/v1/new_search?q=${input}&pharmacyIds=1,2,3`
+					`${API}${input}&pharmacyIds=1,2,3`
 				);
-				// console.log(data.data.saltSuggestions);
-				// console.log(data.data.saltSuggestions.length);
-				if (data.data.saltSuggestions.length > 0) {
-					setSaltArr(data.data.saltSuggestions);
-					setNotFound(false);
-				} else {
-					setNotFound(true);
-					setSaltArr([]);
-				}
-			} catch (error: Error | any) {
-				// setError(error.message || "Something went wrong");
-				console.log(error);
+				const suggestions = data.data.saltSuggestions;
+
+				setSaltArr(suggestions);
+				setNotFound(suggestions.length === 0);
+			} catch (error) {
+				console.error(error);
+				setNotFound(true);
+				setSaltArr([]);
 			} finally {
 				setLoading(false);
 			}
 		},
-		[input]
+		[input, setSaltArr, setNotFound]
 	);
 
 	return (
@@ -68,15 +71,17 @@ const SearchBar = ({ setSaltArr, setNotFound }: any) => {
 
 			<input
 				type="text"
-				className="w-full px-10 py-4 border-none outline-none"
+				className="w-full font-medium text-[#112D31] px-10 py-4 border-none outline-none"
 				placeholder="Type your medicine name here"
 				value={input}
-				onChange={(e) => setInput(e.target.value)}
+				onChange={(e: ChangeEvent<HTMLInputElement>) =>
+					setInput(e.target.value)
+				}
 			/>
 			<button
 				type="submit"
 				className="text-[#2A527A] font-semibold px-4 py-2 rounded-md disabled:cursor-not-allowed"
-				disabled={input.length === 0}
+				disabled={input.length === 0 || loading}
 			>
 				{loading ? "Searching..." : "Search"}
 			</button>
