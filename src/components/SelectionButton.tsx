@@ -14,7 +14,8 @@ const SelectionButton: React.FC<SelectionButtonProps> = ({
 	onClick,
 }) => {
 	const getButtonClass = (available: boolean, selected: boolean) => {
-		let baseClass = "text-xs px-2.5 py-1.5 rounded-lg";
+		let baseClass =
+			"text-xs px-2.5 py-1.5 rounded-lg transition-all duration-400ms";
 		if (available && selected) {
 			return `${baseClass} font-semibold border-2 border-[#112D31] shadow-[0px_0px_11.54px_0px_#00C5A166]`;
 		} else if (available && !selected) {

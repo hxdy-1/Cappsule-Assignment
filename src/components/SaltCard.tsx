@@ -12,10 +12,14 @@ const SaltCard: React.FC<SaltCardProps> = ({
 	availableForms,
 	saltFormJson,
 }) => {
-	const [selectedForm, setSelectedForm] = useState(availableForms[0]);
-	const [selectedStrength, setSelectedStrength] = useState("");
-	const [selectedPacking, setSelectedPacking] = useState("");
+	const [selectedForm, setSelectedForm] = useState<string>(availableForms[0]);
+	const [selectedStrength, setSelectedStrength] = useState<string>("");
+	const [selectedPacking, setSelectedPacking] = useState<string>("");
 	const [lowestPrice, setLowestPrice] = useState<number | null>(null);
+
+	const [formExpanded, setFormExpanded] = useState(false);
+	const [strengthExpanded, setStrengthExpanded] = useState(false);
+	const [packingExpanded, setPackingExpanded] = useState(false);
 
 	const allStrengths = useMemo(() => {
 		const strengthsSet = new Set<string>();
@@ -87,45 +91,70 @@ const SaltCard: React.FC<SaltCardProps> = ({
 		setSelectedPacking(packing);
 	}, []);
 
+	const renderButtons = (
+		items: string[],
+		selectedItem: string,
+		handleSelect: (item: string) => void,
+		expanded: boolean,
+		setExpanded: React.Dispatch<React.SetStateAction<boolean>>,
+		availableItems: string[]
+	) => {
+		const displayedItems = expanded ? items : items.slice(0, 2);
+		return (
+			<div className="flex flex-wrap items-center gap-4">
+				{displayedItems.map((item) => (
+					<SelectionButton
+						key={item}
+						label={item}
+						available={availableItems.includes(item)}
+						selected={selectedItem === item}
+						onClick={() => handleSelect(item)}
+					/>
+				))}
+				{items.length > 2 && (
+					<span
+						className="text-sm cursor-pointer text-[#204772] font-bold"
+						onClick={() => setExpanded(!expanded)}
+					>
+						{expanded ? "less" : "more..."}
+					</span>
+				)}
+			</div>
+		);
+	};
+
 	return (
 		<li className="gradient-salt shadow-salt grid grid-cols-3 px-8 py-8 rounded-2xl">
 			<div className="grid grid-cols-2 gap-y-6">
 				<div className="text-sm">Form: </div>
-				<div className="flex flex-wrap items-center gap-4">
-					{availableForms.map((form) => (
-						<SelectionButton
-							key={form}
-							label={form}
-							available={availableForms.includes(form)}
-							selected={selectedForm === form}
-							onClick={() => handleFormSelect(form)}
-						/>
-					))}
-				</div>
+				{renderButtons(
+					availableForms,
+					selectedForm,
+					handleFormSelect,
+					formExpanded,
+					setFormExpanded,
+					availableForms
+				)}
+
 				<div className="text-sm">Strength: </div>
-				<div className="flex flex-wrap items-center gap-4">
-					{allStrengths.map((strength) => (
-						<SelectionButton
-							key={strength}
-							label={strength}
-							available={strengths.includes(strength)}
-							selected={selectedStrength === strength}
-							onClick={() => handleStrengthSelect(strength)}
-						/>
-					))}
-				</div>
+				{renderButtons(
+					allStrengths,
+					selectedStrength,
+					handleStrengthSelect,
+					strengthExpanded,
+					setStrengthExpanded,
+					strengths
+				)}
+
 				<div className="text-sm">Packaging: </div>
-				<div className="flex flex-wrap items-center gap-4">
-					{allPackings.map((packing) => (
-						<SelectionButton
-							key={packing}
-							label={packing}
-							available={packings.includes(packing)}
-							selected={selectedPacking === packing}
-							onClick={() => handlePackingSelect(packing)}
-						/>
-					))}
-				</div>
+				{renderButtons(
+					allPackings,
+					selectedPacking,
+					handlePackingSelect,
+					packingExpanded,
+					setPackingExpanded,
+					packings
+				)}
 			</div>
 			<div className="w-fit py-8 mx-auto flex flex-col items-center justify-center text-center">
 				<h2 className="font-bold text-black text-xl mb-2">{salt}</h2>
