@@ -12,9 +12,9 @@ const SaltCard: React.FC<SaltCardProps> = ({
 	availableForms,
 	saltFormJson,
 }) => {
-	const [selectedForm, setSelectedForm] = useState<string>(availableForms[0]);
-	const [selectedStrength, setSelectedStrength] = useState<string>("");
-	const [selectedPacking, setSelectedPacking] = useState<string>("");
+	const [selectedForm, setSelectedForm] = useState(availableForms[0]);
+	const [selectedStrength, setSelectedStrength] = useState("");
+	const [selectedPacking, setSelectedPacking] = useState("");
 	const [lowestPrice, setLowestPrice] = useState<number | null>(null);
 
 	const [formExpanded, setFormExpanded] = useState(false);
@@ -24,9 +24,9 @@ const SaltCard: React.FC<SaltCardProps> = ({
 	const allStrengths = useMemo(() => {
 		const strengthsSet = new Set<string>();
 		Object.keys(saltFormJson).forEach((form) => {
-			Object.keys(saltFormJson[form]).forEach((strength) => {
-				strengthsSet.add(strength);
-			});
+			Object.keys(saltFormJson[form]).forEach((strength) =>
+				strengthsSet.add(strength)
+			);
 		});
 		return Array.from(strengthsSet);
 	}, [saltFormJson]);
@@ -35,25 +35,28 @@ const SaltCard: React.FC<SaltCardProps> = ({
 		const packingsSet = new Set<string>();
 		Object.keys(saltFormJson).forEach((form) => {
 			Object.keys(saltFormJson[form]).forEach((strength) => {
-				Object.keys(saltFormJson[form][strength]).forEach((packing) => {
-					packingsSet.add(packing);
-				});
+				Object.keys(saltFormJson[form][strength]).forEach((packing) =>
+					packingsSet.add(packing)
+				);
 			});
 		});
 		return Array.from(packingsSet);
 	}, [saltFormJson]);
 
-	const strengths = useMemo(() => {
-		return selectedForm
-			? Object.keys(saltFormJson[selectedForm] || {})
-			: [];
-	}, [selectedForm, saltFormJson]);
-
-	const packings = useMemo(() => {
-		return selectedForm && selectedStrength
-			? Object.keys(saltFormJson[selectedForm]?.[selectedStrength] || {})
-			: [];
-	}, [selectedForm, selectedStrength, saltFormJson]);
+	const strengths = useMemo(
+		() =>
+			selectedForm ? Object.keys(saltFormJson[selectedForm] || {}) : [],
+		[selectedForm, saltFormJson]
+	);
+	const packings = useMemo(
+		() =>
+			selectedForm && selectedStrength
+				? Object.keys(
+						saltFormJson[selectedForm]?.[selectedStrength] || {}
+				  )
+				: [],
+		[selectedForm, selectedStrength, saltFormJson]
+	);
 
 	useEffect(() => {
 		setSelectedStrength(strengths[0] || "");
@@ -79,17 +82,12 @@ const SaltCard: React.FC<SaltCardProps> = ({
 		}
 	}, [selectedForm, selectedStrength, selectedPacking, saltFormJson]);
 
-	const handleFormSelect = useCallback((form: string) => {
-		setSelectedForm(form);
-	}, []);
-
-	const handleStrengthSelect = useCallback((strength: string) => {
-		setSelectedStrength(strength);
-	}, []);
-
-	const handlePackingSelect = useCallback((packing: string) => {
-		setSelectedPacking(packing);
-	}, []);
+	const handleSelect = useCallback(
+		(setter: React.Dispatch<React.SetStateAction<string>>) =>
+			(item: string) =>
+				setter(item),
+		[]
+	);
 
 	const renderButtons = (
 		items: string[],
@@ -130,7 +128,7 @@ const SaltCard: React.FC<SaltCardProps> = ({
 				{renderButtons(
 					availableForms,
 					selectedForm,
-					handleFormSelect,
+					handleSelect(setSelectedForm),
 					formExpanded,
 					setFormExpanded,
 					availableForms
@@ -140,7 +138,7 @@ const SaltCard: React.FC<SaltCardProps> = ({
 				{renderButtons(
 					allStrengths,
 					selectedStrength,
-					handleStrengthSelect,
+					handleSelect(setSelectedStrength),
 					strengthExpanded,
 					setStrengthExpanded,
 					strengths
@@ -150,7 +148,7 @@ const SaltCard: React.FC<SaltCardProps> = ({
 				{renderButtons(
 					allPackings,
 					selectedPacking,
-					handlePackingSelect,
+					handleSelect(setSelectedPacking),
 					packingExpanded,
 					setPackingExpanded,
 					packings
